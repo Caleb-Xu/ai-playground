@@ -60,6 +60,36 @@
     pnpm lint:fix
     ```
 
+## 💻 如何在其他设备继续开发
+
+如果你 clone 了这个仓库到新电脑，请按以下步骤恢复环境：
+
+1.  **安装依赖**
+
+    ```bash
+    # 如果没有安装 pnpm
+    npm install -g pnpm
+
+    # 安装项目依赖
+    pnpm install
+    ```
+
+2.  **配置环境变量**
+    项目根目录下的 `.env` 文件被 git 忽略了（为了安全）。你需要手动创建一个 `.env` 文件，并填入以下内容：
+
+    ```properties
+    # .env
+    AI_API_KEY=你的_API_KEY_这里
+    AI_BASE_URL=https://ark.cn-beijing.volces.com/api/v3  # 或者其他服务商地址
+    AI_MODEL=你的模型ID
+    PORT=3000
+    ```
+
+3.  **启动服务**
+    需要同时启动前端和后端：
+    - 终端 1 (后端): `pnpm server`
+    - 终端 2 (前端): `pnpm dev`
+
 ---
 
-_Last updated: 2025-11-28_
+_Last updated: 2025-11-29_
