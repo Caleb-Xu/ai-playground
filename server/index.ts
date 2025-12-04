@@ -1,35 +1,38 @@
+import type { Request, Response } from 'express'
+import type { VectorDocument } from './knowledge'
 import { Buffer } from 'node:buffer'
 import process from 'node:process'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
 import { OpenAI } from 'openai'
-import { KNOWLEDGE_BASE } from './knowledge.js'
-import { searchSimilar } from './rag-utils.js'
+import { KNOWLEDGE_BASE } from './knowledge'
+import { searchSimilar } from './rag-utils'
 
 dotenv.config()
 
 const app = express()
 const port = process.env.PORT || 3000
 
-// Middleware
 app.use(cors())
 app.use(express.json())
 
-// Initialize OpenAI client
-// 注意：这里我们虽然用了 OpenAI SDK，但可以通过 baseURL 指向任何兼容 OpenAI 接口的服务（如 DeepSeek, Moonshot 等）
+/**
+ * 初始化 OpenAI 客户端
+ * 注意：这里我们虽然用了 OpenAI SDK，但可以通过 baseURL 指向任何兼容 OpenAI 接口的服务
+ */
 const client = new OpenAI({
   apiKey: process.env.AI_API_KEY || 'dummy-key',
   baseURL: process.env.AI_BASE_URL || 'https://api.openai.com/v1',
 })
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', message: 'Server is running' })
 })
 
-// Chat API
-app.post('/api/chat', async (req, res) => {
+// Chat API - 流式对话
+app.post('/api/chat', async (req: Request, res: Response) => {
   try {
     const { messages } = req.body
 
@@ -41,14 +44,14 @@ app.post('/api/chat', async (req, res) => {
     const stream = await client.chat.completions.create({
       model: process.env.AI_MODEL || 'gpt-3.5-turbo',
       messages,
-      stream: true, // 关键点：开启流式
+      stream: true,
     })
 
     // 设置响应头，告诉浏览器这是一个流
     res.setHeader('Content-Type', 'text/plain; charset=utf-8')
     res.setHeader('Transfer-Encoding', 'chunked')
 
-    // 遍历流，把每个片段 (chunk) 实时写回给前端
+    // 遍历流，把每个片段实时写回给前端
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || ''
       if (content) {
@@ -56,16 +59,14 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
-    // 流结束
     res.end()
   }
   catch (error) {
     console.error('Error calling AI API:', error)
-    // 如果流还没开始就报错，返回 JSON 错误；如果流已经开始，只能在流里中断
     if (!res.headersSent) {
       res.status(500).json({
         error: 'Failed to fetch response from AI',
-        details: error.message,
+        details: error instanceof Error ? error.message : 'Unknown error',
       })
     }
     else {
@@ -77,7 +78,7 @@ app.post('/api/chat', async (req, res) => {
 // ========== RAG 相关接口 ==========
 
 // Embedding API - 把文本转换成向量
-app.post('/api/embedding', async (req, res) => {
+app.post('/api/embedding', async (req: Request, res: Response) => {
   try {
     const { text } = req.body
 
@@ -93,7 +94,6 @@ app.post('/api/embedding', async (req, res) => {
       input,
     })
 
-    // 返回向量数据
     res.json({
       embeddings: response.data.map(item => item.embedding),
       model: response.model,
@@ -104,32 +104,29 @@ app.post('/api/embedding', async (req, res) => {
     console.error('Error calling Embedding API:', error)
     res.status(500).json({
       error: 'Failed to generate embedding',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     })
   }
 })
 
 // ========== RAG 完整实现 ==========
 
-// 内存中的向量库（服务启动时为空，需要先初始化）
-let vectorStore = []
+/** 内存中的向量库 */
+let vectorStore: VectorDocument[] = []
 
 // 初始化向量库 - 把知识库文档全部向量化
-app.post('/api/rag/init', async (req, res) => {
+app.post('/api/rag/init', async (_req: Request, res: Response) => {
   try {
     // eslint-disable-next-line no-console
     console.log('🔄 Initializing vector store...')
 
-    // 提取所有文档的内容
     const texts = KNOWLEDGE_BASE.map(doc => doc.content)
 
-    // 批量调用 Embedding API
     const response = await client.embeddings.create({
       model: process.env.AI_EMBEDDING_MODEL || 'text-embedding-ada-002',
       input: texts,
     })
 
-    // 把向量和原始文档组合起来
     vectorStore = KNOWLEDGE_BASE.map((doc, index) => ({
       ...doc,
       embedding: response.data[index].embedding,
@@ -148,13 +145,13 @@ app.post('/api/rag/init', async (req, res) => {
     console.error('Error initializing vector store:', error)
     res.status(500).json({
       error: 'Failed to initialize vector store',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     })
   }
 })
 
 // RAG 问答接口 - 检索 + 生成（流式）
-app.post('/api/rag/ask', async (req, res) => {
+app.post('/api/rag/ask', async (req: Request, res: Response) => {
   try {
     const { question } = req.body
 
@@ -175,7 +172,7 @@ app.post('/api/rag/ask', async (req, res) => {
     })
     const queryVector = questionEmbedding.data[0].embedding
 
-    // Step 2: 在向量库中搜索最相关的文档（取前 3 个）
+    // Step 2: 在向量库中搜索最相关的文档
     const allDocs = searchSimilar(queryVector, vectorStore, 3)
 
     // 设置相似度阈值：只保留相似度 > 0.75 的文档
@@ -183,12 +180,10 @@ app.post('/api/rag/ask', async (req, res) => {
     const relevantDocs = allDocs.filter(doc => doc.score >= SIMILARITY_THRESHOLD)
 
     // Step 3: 构造带上下文的 Prompt
-    let context
-    let systemPrompt
+    let systemPrompt: string
 
     if (relevantDocs.length > 0) {
-      // 有相关文档
-      context = relevantDocs
+      const context = relevantDocs
         .map(doc => `【${doc.title}】\n${doc.content}`)
         .join('\n\n')
 
@@ -200,7 +195,6 @@ ${context}
 ===== 参考资料结束 =====`
     }
     else {
-      // 没有相关文档
       systemPrompt = `你是一个智能客服助手。用户的问题超出了你的知识范围。
 请礼貌地告诉用户你没有找到相关信息，并说明你可以回答关于课程内容、技术支持、退款政策等方面的问题。`
     }
@@ -218,7 +212,8 @@ ${context}
     // 设置响应头
     res.setHeader('Content-Type', 'text/plain; charset=utf-8')
     res.setHeader('Transfer-Encoding', 'chunked')
-    // 只返回通过阈值的相关文档（如果没有则为空数组）
+
+    // 只返回通过阈值的相关文档
     const sourcesData = relevantDocs.map(d => ({
       id: d.id,
       title: d.title,
@@ -242,7 +237,7 @@ ${context}
     if (!res.headersSent) {
       res.status(500).json({
         error: 'Failed to process RAG question',
-        details: error.message,
+        details: error instanceof Error ? error.message : 'Unknown error',
       })
     }
     else {

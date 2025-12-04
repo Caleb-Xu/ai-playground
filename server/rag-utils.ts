@@ -1,13 +1,11 @@
 // RAG 工具函数
+import type { SearchResult, VectorDocument } from './knowledge'
 
 /**
  * 计算两个向量的余弦相似度
  * 余弦相似度范围是 -1 到 1，越接近 1 表示越相似
- * @param {number[]} vecA - 向量 A
- * @param {number[]} vecB - 向量 B
- * @returns {number} 余弦相似度
  */
-export function cosineSimilarity(vecA, vecB) {
+export function cosineSimilarity(vecA: number[], vecB: number[]): number {
   if (vecA.length !== vecB.length) {
     throw new Error('Vectors must have the same length')
   }
@@ -31,16 +29,14 @@ export function cosineSimilarity(vecA, vecB) {
 
 /**
  * 在向量库中搜索最相似的文档
- * @param {number[]} queryEmbedding - 查询向量
- * @param {Array<{id: string, embedding: number[], content: string}>} vectorStore - 向量库
- * @param {number} topK - 返回前 K 个结果
- * @returns {Array<{id: string, content: string, score: number}>}
  */
-export function searchSimilar(queryEmbedding, vectorStore, topK = 3) {
-  const results = vectorStore.map(doc => ({
-    id: doc.id,
-    title: doc.title,
-    content: doc.content,
+export function searchSimilar(
+  queryEmbedding: number[],
+  vectorStore: VectorDocument[],
+  topK: number = 3,
+): SearchResult[] {
+  const results: SearchResult[] = vectorStore.map(doc => ({
+    ...doc,
     score: cosineSimilarity(queryEmbedding, doc.embedding),
   }))
 

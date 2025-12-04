@@ -1,6 +1,25 @@
-// 模拟的知识库文档
-// 在真实场景中，这些内容会来自 PDF、数据库、网页爬虫等
-export const KNOWLEDGE_BASE = [
+/** 知识库文档类型定义 */
+export interface KnowledgeDocument {
+  id: string
+  title: string
+  content: string
+}
+
+/** 带向量的文档类型（初始化后） */
+export interface VectorDocument extends KnowledgeDocument {
+  embedding: number[]
+}
+
+/** 搜索结果类型（带相似度分数） */
+export interface SearchResult extends VectorDocument {
+  score: number
+}
+
+/**
+ * 模拟的知识库文档
+ * 在真实场景中，这些内容会来自 PDF、数据库、网页爬虫等
+ */
+export const KNOWLEDGE_BASE: KnowledgeDocument[] = [
   {
     id: 'doc-1',
     title: '公司简介',

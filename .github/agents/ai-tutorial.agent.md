@@ -1,6 +1,8 @@
 # AI 前端开发教程 Agent
 
 > 这是一个从零开始的 AI 应用开发教程项目。本文件帮助 Copilot 理解项目背景和当前进度。
+>
+> **自动更新规则**: 每当项目有重要更新时（新功能完成、重大重构、技术栈变更），应同步更新本文件和 `README.md`。
 
 ## 📚 教程目标
 
@@ -10,15 +12,17 @@
 2. ✅ 流式输出
 3. ✅ Prompt 工程
 4. ✅ RAG 后端实现
-5. ⏳ RAG 前端集成
-6. ⏳ 项目完善与总结
+5. ✅ RAG 前端集成
+6. ✅ TypeScript 迁移
+7. ⏳ 项目完善与总结
 
 ## 🛠️ 技术栈
 
 | 类别      | 技术                                 |
 | --------- | ------------------------------------ |
 | 前端      | React 18 + TypeScript + Vite 5       |
-| 后端      | Node.js 20 + Express                 |
+| 后端      | Node.js 20 + Express + TypeScript    |
+| TS 运行   | tsx (无需编译直接运行 TS)            |
 | 包管理    | pnpm                                 |
 | 代码规范  | ESLint (@antfu/eslint-config)        |
 | LLM API   | 火山引擎 (Volcengine) via OpenAI SDK |
@@ -32,27 +36,29 @@ ai-playground/
 ├── package.json            # 项目配置，包含 volta 节点版本
 ├── vite.config.ts          # Vite 配置，含后端代理
 ├── server/
-│   ├── index.js            # Express 后端主入口
-│   ├── knowledge.js        # RAG 知识库 (6 条模拟文档)
-│   └── rag-utils.js        # RAG 工具函数 (余弦相似度、相似搜索)
+│   ├── index.ts            # Express 后端主入口 (TypeScript)
+│   ├── knowledge.ts        # RAG 知识库 + 类型定义
+│   ├── rag-utils.ts        # RAG 工具函数 (余弦相似度、相似搜索)
+│   └── tsconfig.json       # 后端 TypeScript 配置
 ├── src/
 │   ├── components/
-│   │   └── ChatBox.tsx     # 聊天组件 (流式输出、System Prompt)
+│   │   └── ChatBox.tsx     # 聊天组件 (流式输出、System Prompt、RAG 模式)
 │   └── data/
 │       └── promptTemplates.ts  # Prompt 模板 (Few-shot, CoT, 结构化输出)
-└── docs/
-    └── SESSION_RESUME.md   # 会话恢复文档 (已被本文件取代)
+└── .github/
+    └── agents/
+        └── ai-tutorial.agent.md  # Copilot 上下文 (本文件)
 ```
 
 ## 🔌 API 端点
 
-| 端点             | 方法 | 功能              |
-| ---------------- | ---- | ----------------- |
-| `/api/health`    | GET  | 健康检查          |
-| `/api/chat`      | POST | LLM 对话 (流式)   |
-| `/api/embedding` | POST | 文本向量化        |
-| `/api/rag/init`  | POST | 初始化 RAG 向量库 |
-| `/api/rag/ask`   | POST | RAG 问答          |
+| 端点             | 方法 | 功能                       |
+| ---------------- | ---- | -------------------------- |
+| `/api/health`    | GET  | 健康检查                   |
+| `/api/chat`      | POST | LLM 对话 (流式)            |
+| `/api/embedding` | POST | 文本向量化                 |
+| `/api/rag/init`  | POST | 初始化 RAG 向量库          |
+| `/api/rag/ask`   | POST | RAG 问答 (流式 + 来源文档) |
 
 ## 🧠 已学习的概念
 
@@ -77,24 +83,41 @@ ai-playground/
 ### 4. RAG (Retrieval-Augmented Generation)
 
 - **Embedding API**: 将文本转换为向量
-- **向量存储**: 内存中的 `vectorStore` 数组
+- **向量存储**: 内存中的 `vectorStore` 数组 (带类型定义)
 - **余弦相似度**: 计算查询与文档的相关性
+- **相似度阈值**: 75% 阈值过滤不相关文档
 - **检索增强**: 将相关文档注入 Prompt
+- **来源显示**: 前端显示检索到的文档及相似度分数
+
+### 5. TypeScript 最佳实践
+
+- 后端完整类型定义 (`KnowledgeDocument`, `VectorDocument`, `SearchResult`)
+- 使用 `import type` 区分类型导入和运行时导入
+- tsx 运行时无需编译步骤
 
 ## 📝 当前进度
 
-**最后完成**: RAG 后端测试成功
+**已完成**:
 
-- `/api/rag/init` 初始化 6 条知识库文档
-- `/api/rag/ask` 成功返回基于知识库的回答
-- 修复了 HTTP Header 中文编码问题
-- 修复了 PowerShell UTF-8 编码问题
+- ✅ React + Vite + TypeScript 项目初始化
+- ✅ pnpm + ESLint 配置
+- ✅ Node.js/Express 后端 + Volcengine API 集成
+- ✅ 流式输出 (后端 stream + 前端 ReadableStream)
+- ✅ Prompt 工程 UI (System Prompt + 模板切换)
+- ✅ RAG 后端 (Embedding + 向量存储 + 相似度搜索 + 阈值过滤)
+- ✅ RAG 前端集成 (模式切换、流式响应、来源文档显示)
+- ✅ 后端 TypeScript 迁移 (server/_.js → server/_.ts)
+- ✅ 注释风格规范化
 
-**下一步**: RAG 前端集成
+**已解决的问题**:
 
-- 在 ChatBox 添加 RAG 模式切换
-- 显示检索到的来源文档
-- 展示相似度分数
+- ESLint process 错误: `import process from 'node:process'`
+- HTTP Header 中文编码: Base64 编码 + UTF-8 解码
+- React 状态竞态: 使用 `map()` 创建新对象避免直接修改
+- 相似度阈值: 0.75 阈值过滤不相关文档
+- ESLint array-index-key: 给消息分配唯一 ID
+
+**下一步**: 项目完善与总结
 
 ## 🚀 启动命令
 
@@ -103,10 +126,10 @@ ai-playground/
 pnpm install
 
 # 启动后端 (端口 3000)
-pnpm run server
+pnpm server
 
 # 启动前端 (端口 5173，自动代理到后端)
-pnpm run dev
+pnpm dev
 ```
 
 ## ⚙️ 环境变量 (.env)
@@ -119,9 +142,36 @@ AI_EMBEDDING_MODEL=your-embedding-model-id
 PORT=3000
 ```
 
+## 📏 代码规范
+
+### 注释风格
+
+- **JSDoc (`/** \*/`)\*\*: 用于变量、常量、接口、类型、函数定义
+- **单行注释 (`//`)**: 用于路由说明、代码段分隔、行内解释
+
+```typescript
+/** 知识库文档的基础类型 */
+interface KnowledgeDocument {
+  id: string
+  title: string
+  content: string
+}
+
+// ========== API Routes ==========
+
+// 健康检查端点
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok' })
+})
+```
+
 ## 🎓 教学风格
 
 - 循序渐进，每步都解释原理
 - 提供可运行的代码示例
 - 遇到错误时详细解释解决方案
 - 用类比帮助理解抽象概念（如"余弦相似度就像比较两个箭头的方向"）
+
+---
+
+_Last updated: 2025-12-04_
