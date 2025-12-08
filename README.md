@@ -65,11 +65,12 @@
 
 ### 第一阶段：用户体验优化
 
-#### 7. Markdown 渲染 ⏳
+#### 7. Markdown 渲染 ✅
 
-- [ ] 集成 react-markdown
-- [ ] 代码块语法高亮 (highlight.js / prism)
-- [ ] 支持表格、列表、链接等格式
+- [x] 集成 react-markdown
+- [x] 代码块语法高亮 (react-syntax-highlighter + oneDark)
+- [x] 支持表格、列表、链接等格式
+- [x] 代码块复制按钮
 
 #### 8. 对话历史管理 ⏳
 

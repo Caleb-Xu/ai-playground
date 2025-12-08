@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { PROMPT_TEMPLATES } from '../data/promptTemplates'
+import MarkdownRenderer from './MarkdownRenderer'
 
 // 生成唯一 ID
 let messageIdCounter = 0
@@ -12,6 +13,7 @@ interface Message {
   id: string // 唯一标识符
   role: 'user' | 'assistant' | 'system'
   content: string
+  isStreaming?: boolean // 标记是否正在流式输出
   // RAG 模式下的来源文档
   sources?: Array<{
     title: string
@@ -137,26 +139,55 @@ export function ChatBox() {
         id: assistantId,
         role: 'assistant',
         content: '',
+        isStreaming: true,
         sources,
       }
       setMessages(prev => [...prev, assistantMessage])
 
-      // 流式读取
+      // 流式读取 - 使用缓冲区减少渲染次数
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
+      let buffer = ''
+      let lastRenderTime = 0
+      const RENDER_INTERVAL = 50 // 每 50ms 最多渲染一次
 
       while (true) {
         const { done, value } = await reader.read()
-        if (done)
+
+        if (done) {
+          // 流结束，渲染剩余内容并标记完成
+          if (buffer) {
+            setMessages(prev => prev.map(msg =>
+              msg.id === assistantId
+                ? { ...msg, content: msg.content + buffer, isStreaming: false }
+                : msg,
+            ))
+          }
+          else {
+            setMessages(prev => prev.map(msg =>
+              msg.id === assistantId
+                ? { ...msg, isStreaming: false }
+                : msg,
+            ))
+          }
           break
+        }
 
-        const text = decoder.decode(value, { stream: true })
+        buffer += decoder.decode(value, { stream: true })
 
-        setMessages(prev => prev.map(msg =>
-          msg.id === assistantId
-            ? { ...msg, content: msg.content + text }
-            : msg,
-        ))
+        // 节流：限制渲染频率
+        const now = Date.now()
+        if (now - lastRenderTime >= RENDER_INTERVAL) {
+          const textToRender = buffer
+          buffer = ''
+          lastRenderTime = now
+
+          setMessages(prev => prev.map(msg =>
+            msg.id === assistantId
+              ? { ...msg, content: msg.content + textToRender }
+              : msg,
+          ))
+        }
       }
     }
     catch (error) {
@@ -283,6 +314,7 @@ export function ChatBox() {
         borderRadius: '8px',
         height: '400px',
         overflowY: 'auto',
+        overflowX: 'hidden',
         padding: '20px',
         marginBottom: '20px',
         background: '#1a1a1a',
@@ -299,6 +331,7 @@ export function ChatBox() {
             style={{
               marginBottom: '12px',
               textAlign: msg.role === 'user' ? 'right' : 'left',
+              overflow: 'hidden',
             }}
           >
             <div
@@ -310,9 +343,20 @@ export function ChatBox() {
                 color: '#fff',
                 maxWidth: '80%',
                 textAlign: 'left',
+                minHeight: msg.role === 'assistant' ? '24px' : 'auto',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
+                overflow: 'hidden',
               }}
             >
-              {msg.content}
+              {msg.role === 'user'
+                ? msg.content
+                : (
+                    <>
+                      <MarkdownRenderer content={msg.content} />
+                      {msg.isStreaming && <span className="cursor-blink">▊</span>}
+                    </>
+                  )}
             </div>
             {/* RAG 来源文档显示 */}
             {msg.sources && msg.sources.length > 0 && (

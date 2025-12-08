@@ -2,11 +2,11 @@
 
 > 本文件为 GitHub Copilot 提供项目上下文。完整学习路线请参考 `README.md`。
 
-## � 当前进度
+## 📍 当前进度
 
-**已完成**: 基础阶段 (1-6) - LLM API、流式输出、Prompt 工程、RAG、TypeScript 迁移
+**已完成**: 基础阶段 (1-6) + 第 7 模块 Markdown 渲染
 
-**下一步**: 第 7 模块 - Markdown 渲染 (react-markdown + 代码高亮)
+**下一步**: 第 8 模块 - 对话历史管理 (多轮上下文 + localStorage)
 
 ## � 已解决的技术问题
 

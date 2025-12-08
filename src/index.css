@@ -20,3 +20,15 @@ h1 {
   font-size: 3.2em;
   line-height: 1.1;
 }
+
+/* 流式输出光标闪烁动画 */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: blink 1s infinite;
+  color: #646cff;
+  margin-left: 2px;
+}
