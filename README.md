@@ -252,4 +252,184 @@ ai-playground/
 
 ---
 
-_Last updated: 2025-12-04_
+## 📐 代码规范与质量标准
+
+### 设计原则
+
+#### 1. DRY 原则 (Don't Repeat Yourself)
+- 发现重复代码立即抽取函数/组件
+- 相似逻辑封装为可复用 Hook
+- 避免复制粘贴,改用函数调用
+
+#### 2. 单一职责原则
+- 一个函数只做一件事
+- 组件职责清晰,不混杂业务逻辑与 UI
+- 单个文件控制在 200 行以内
+
+#### 3. 关注点分离
+- **UI 组件**: 纯展示逻辑,通过 props 接收数据
+- **业务逻辑**: 封装在自定义 Hook 中
+- **类型定义**: 统一在 `types.ts` 管理
+- **常量配置**: 提取到独立文件
+
+### 命名规范
+
+```typescript
+// ✅ 函数名: 动词开头,驼峰命名
+function handleSend() {}
+function updateMessage() {}
+
+// ✅ 布尔值: is/has/should 前缀
+const isLoading = false
+const hasError = true
+const shouldRender = true
+
+// ✅ 常量: 全大写,下划线分隔
+const RENDER_INTERVAL = 50
+const MAX_RETRY_COUNT = 3
+
+// ✅ 类型/接口: PascalCase
+interface Message {}
+type UseChatOptions = {}
+
+// ✅ 组件: PascalCase
+function ChatBox() {}
+export default MessageList
+```
+
+### TypeScript 规范
+
+```typescript
+// ✅ 避免使用 any
+const data: unknown = await fetch()
+
+// ✅ 优先使用类型推断
+const count = 0  // 自动推断为 number
+
+// ✅ 复杂类型抽取为 interface/type
+interface User {
+  id: string
+  name: string
+}
+
+// ✅ 使用泛型提高复用性
+function wrapInArray<T>(value: T): T[] {
+  return [value]
+}
+```
+
+### React 组件规范
+
+```typescript
+// ✅ Props 类型定义
+interface ButtonProps {
+  onClick: () => void
+  children: React.ReactNode
+  disabled?: boolean  // 可选属性用 ?
+}
+
+// ✅ 组件解构 props
+export function Button({ onClick, children, disabled = false }: ButtonProps) {
+  return <button onClick={onClick} disabled={disabled}>{children}</button>
+}
+
+// ✅ 事件处理函数以 handle 开头
+const handleClick = () => {}
+const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {}
+```
+
+### 性能优化规范
+
+```typescript
+// ✅ 使用节流/防抖
+const RENDER_INTERVAL = 50
+if (now - lastRenderTime >= RENDER_INTERVAL) {
+  render()
+}
+
+// ✅ 避免在循环中创建函数
+// ❌ 错误
+items.map((item, index) => <Item key={index} onClick={() => handle(item)} />)
+
+// ✅ 正确
+const handleClick = (item: Item) => handle(item)
+items.map(item => <Item key={item.id} onClick={() => handleClick(item)} />)
+
+// ✅ 列表渲染使用唯一 key (不用 index)
+messages.map(msg => <Message key={msg.id} {...msg} />)
+```
+
+### 错误处理规范
+
+```typescript
+// ✅ 异步操作必须 try-catch
+try {
+  const response = await fetch('/api/chat')
+  const data = await response.json()
+} catch (error) {
+  console.error('Error:', error)
+  // 提供友好的错误提示
+  alert('发送失败,请检查网络连接')
+}
+
+// ✅ finally 清理状态
+finally {
+  setIsLoading(false)
+}
+```
+
+### 注释规范
+
+```typescript
+/** 
+ * JSDoc: 用于函数、接口、类型的说明文档
+ * @param input - 用户输入的消息
+ * @returns 格式化后的消息对象
+ */
+function createMessage(input: string): Message {
+  // 单行注释: 用于复杂逻辑解释、代码段分隔
+  const trimmed = input.trim()
+  
+  // 生成唯一 ID
+  return {
+    id: generateId(),
+    content: trimmed,
+  }
+}
+```
+
+### 代码组织规范
+
+```
+✅ 推荐的目录结构:
+components/
+├── ChatBox.tsx          # 主组件
+└── chat/                # 相关子模块
+    ├── index.ts         # 统一导出
+    ├── types.ts         # 类型定义
+    ├── useChat.ts       # Hook
+    ├── MessageList.tsx  # 子组件
+    └── ...
+
+❌ 避免:
+components/
+├── ChatBox.tsx
+├── MessageList.tsx      # 扁平化,难以管理
+├── MessageBubble.tsx
+└── ...
+```
+
+### 可维护性检查清单
+
+- [ ] 是否有重复代码可以抽取?
+- [ ] 函数是否超过 30 行? (考虑拆分)
+- [ ] 文件是否超过 200 行? (考虑模块化)
+- [ ] 组件职责是否单一?
+- [ ] 类型定义是否完整?
+- [ ] 错误处理是否完善?
+- [ ] 是否有魔法数字? (应提取为常量)
+- [ ] 变量/函数命名是否语义化?
+
+---
+
+_Last updated: 2025-12-09_
