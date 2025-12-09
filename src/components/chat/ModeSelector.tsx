@@ -5,6 +5,15 @@ interface ModeSelectorProps {
   ragInitializing: boolean
 }
 
+// 按钮样式常量
+const BUTTON_BASE_STYLE = {
+  padding: '6px 12px',
+  borderRadius: '4px',
+  border: 'none',
+  color: '#fff',
+  cursor: 'pointer',
+} as const
+
 /** 对话模式切换组件 */
 export default function ModeSelector({
   isRagMode,
@@ -29,12 +38,8 @@ export default function ModeSelector({
         type="button"
         onClick={() => onModeChange(false)}
         style={{
-          padding: '6px 12px',
-          borderRadius: '4px',
-          border: 'none',
+          ...BUTTON_BASE_STYLE,
           background: !isRagMode ? '#646cff' : '#333',
-          color: '#fff',
-          cursor: 'pointer',
         }}
       >
         💬 普通对话
@@ -43,12 +48,8 @@ export default function ModeSelector({
         type="button"
         onClick={() => onModeChange(true)}
         style={{
-          padding: '6px 12px',
-          borderRadius: '4px',
-          border: 'none',
+          ...BUTTON_BASE_STYLE,
           background: isRagMode ? '#646cff' : '#333',
-          color: '#fff',
-          cursor: 'pointer',
         }}
       >
         📚 RAG 问答
