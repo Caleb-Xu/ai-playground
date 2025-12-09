@@ -4,20 +4,26 @@
 
 ## 🛠️ 技术栈
 
-| 类别     | 技术                                 |
-| -------- | ------------------------------------ |
-| 前端     | React 18 + TypeScript + Vite 5       |
-| 后端     | Node.js 20 + Express + TypeScript    |
-| TS 运行  | tsx (无需编译直接运行 TS)            |
-| 包管理   | pnpm                                 |
-| 代码规范 | ESLint (@antfu/eslint-config)        |
-| LLM API  | 火山引擎 (Volcengine) via OpenAI SDK |
+| 类别       | 技术                                 |
+| ---------- | ------------------------------------ |
+| 前端       | React 18 + TypeScript + Vite 5       |
+| 后端       | Node.js 20 + Express + TypeScript    |
+| 数据库     | SQLite (sql.js - 纯 JS 实现)         |
+| 路由       | React Router v7                      |
+| TS 运行    | tsx (无需编译直接运行 TS)            |
+| 包管理     | pnpm                                 |
+| 代码规范   | ESLint (@antfu/eslint-config)        |
+| LLM API    | 火山引擎 (Volcengine) via OpenAI SDK |
+| Markdown   | react-markdown + react-syntax-highlighter |
 
 ## ✨ 功能特性
 
 - **流式对话**: 实时显示 AI 的逐字回复，提升用户体验
 - **Prompt 工程**: 支持 System Prompt 配置和多种提示模板
 - **RAG 模式**: 基于知识库的检索增强生成，显示来源文档及相似度
+- **对话历史**: SQLite 持久化存储，支持多会话管理和 URL 路由
+- **Markdown 渲染**: 代码高亮、表格、列表等完整支持
+- **会话管理**: 自动生成标题、手动编辑、RAG 模式切换
 - **类型安全**: 前后端全 TypeScript，完整类型定义
 
 ## 📚 学习路线与进度
@@ -72,11 +78,55 @@
 - [x] 支持表格、列表、链接等格式
 - [x] 代码块复制按钮
 
-#### 8. 对话历史管理 ⏳
+#### 8. 对话历史管理 ✅
 
-- [ ] 多轮对话上下文传递
-- [ ] localStorage 持久化存储
-- [ ] 历史记录列表与切换
+**实现内容**:
+
+- [x] 后端 SQLite 数据库存储 (sql.js)
+  - conversations 表: id, title, created_at, updated_at, is_rag_mode
+  - messages 表: id, conversation_id, role, content, sources, created_at
+- [x] CRUD API 端点
+  - GET/POST/DELETE /api/conversations
+  - PATCH /api/conversations/:id/mode (切换 RAG 模式)
+  - PATCH /api/conversations/:id/title (修改标题)
+  - GET /api/conversations/:id (获取会话详情及消息)
+- [x] 前端 React Router 集成
+  - URL 路径: `/chat/:conversationId`
+  - 浏览器地址栏显示当前会话 ID
+  - 刷新页面保持会话状态
+- [x] 会话列表侧边栏
+  - 显示所有会话及时间
+  - RAG 模式徽章显示
+  - 删除会话功能
+- [x] 自动生成会话标题
+  - 首条消息前 30 字符作为标题
+  - 通过 HTTP 响应头 (X-Generated-Title) 实时通知前端
+  - 无需刷新页面即可更新标题
+- [x] 手动编辑标题
+  - 双击或点击编辑按钮进入编辑模式
+  - Enter 保存, Esc 取消
+  - 失去焦点自动保存
+
+**技术要点**:
+
+```typescript
+// 后端: 自动生成标题并通过响应头传递
+if (messagesBefore.length === 0) {
+  const conversation = db.getConversation(conversationId)
+  if (conversation && conversation.title !== '新对话') {
+    res.setHeader('X-Generated-Title', Buffer.from(conversation.title).toString('base64'))
+  }
+}
+
+// 前端: 从响应头读取标题
+const generatedTitleHeader = response.headers.get('X-Generated-Title')
+if (generatedTitleHeader && onTitleGenerated) {
+  const title = new TextDecoder('utf-8').decode(
+    Uint8Array.from(atob(generatedTitleHeader), c => c.charCodeAt(0))
+  )
+  onTitleGenerated(title)
+}
+```
 
 #### 9. 中断生成 ⏳
 
@@ -429,6 +479,25 @@ components/
 - [ ] 错误处理是否完善?
 - [ ] 是否有魔法数字? (应提取为常量)
 - [ ] 变量/函数命名是否语义化?
+
+---
+
+## 📝 项目文档更新日志
+
+### 2025-12-09: 模块 8 - 对话历史管理
+
+**新增功能**:
+- ✅ 后端 SQLite 数据库 (sql.js) 存储会话和消息
+- ✅ React Router 集成,支持 URL 路由 (`/chat/:conversationId`)
+- ✅ 自动生成会话标题 (首条消息前 30 字符)
+- ✅ 手动编辑标题 (双击/编辑按钮)
+- ✅ 会话列表侧边栏,支持 RAG 徽章显示
+- ✅ 标题通过 HTTP 响应头 (`X-Generated-Title`) 实时更新
+
+**技术要点**:
+- 使用 `sql.js` 替代 `better-sqlite3` (纯 JS 实现,无需编译)
+- 响应头 Base64 编码传递标题,避免污染聊天内容
+- React StrictMode 双重调用问题通过 `useRef` 解决
 
 ---
 
